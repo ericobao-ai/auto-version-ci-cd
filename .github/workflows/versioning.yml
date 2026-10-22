@@ -1,0 +1,36 @@
+name: Incrementar versão
+
+on:
+  push:
+    branches:
+      - main
+
+permissions:
+  contents: write
+
+jobs:
+  incrementar-versao:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Baixar o repositório
+        uses: actions/checkout@v4
+
+      - name: Incrementar a versão
+        id: versao
+        run: |
+          versao_atual=$(cat version.txt)
+          versao_sem_v=${versao_atual#v}
+          IFS='.' read -r maior menor correcao <<< "$versao_sem_v"
+          correcao=$((correcao + 1))
+          nova_versao="v${maior}.${menor}.${correcao}"
+          printf '%s\n' "$nova_versao" > version.txt
+          echo "nova_versao=$nova_versao" >> "$GITHUB_OUTPUT"
+
+      - name: Registrar e enviar a nova versão
+        run: |
+          git config user.name "CI Bot"
+          git config user.email "ci-bot@users.noreply.github.com"
+          git add version.txt
+          git commit -m "Incrementa versão para ${{ steps.versao.outputs.nova_versao }}"
+          git push origin HEAD:main
